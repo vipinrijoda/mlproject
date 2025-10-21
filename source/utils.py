@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import dill
 from sklearn.metrics import r2_score
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 
 from source.exception import CustomException
 from source.logger import logging
@@ -23,23 +23,42 @@ def save_object(file_path, obj):
     except Exception as e:
         raise CustomException(e, sys)
 
-def evaluate_models(X_train, y_train, X_test, y_test, models):
+def evaluate_models(X_train, y_train, X_test, y_test, models, param_grids=None):
     """
-    Evaluate multiple machine learning models
+    Evaluate multiple machine learning models with hyperparameter tuning
     """
     try:
         report = {}
 
         for model_name, model in models.items():
-            # Train model
-            model.fit(X_train, y_train)
+            # Check if hyperparameter tuning is requested for this model
+            if param_grids and model_name in param_grids:
+                logging.info(f"Performing hyperparameter tuning for {model_name}")
+                
+                grid_search = RandomizedSearchCV(
+                    model, 
+                    param_grids[model_name], 
+                    n_iter=10,
+                    cv=5,
+                    scoring='r2',
+                    n_jobs=-1,
+                    random_state=42
+                )
+                
+                grid_search.fit(X_train, y_train)
+                
+                # Get the best model (already fitted during grid search)
+                best_model = grid_search.best_estimator_
+                
+            else:
+                # Use default model without tuning
+                best_model = model
+                best_model.fit(X_train, y_train)
 
-            # Make predictions
-            y_train_pred = model.predict(X_train)
-            y_test_pred = model.predict(X_test)
+            # Make predictions with best model
+            y_test_pred = best_model.predict(X_test)
 
-            # Calculate R2 scores
-            train_model_score = r2_score(y_train, y_train_pred)
+            # Calculate R2 score
             test_model_score = r2_score(y_test, y_test_pred)
 
             report[model_name] = test_model_score
@@ -57,4 +76,4 @@ def load_object(file_path):
         with open(file_path, "rb") as file_obj:
             return dill.load(file_obj)
     except Exception as e:
-        raise CustomException(e, sys)      
+        raise CustomException(e, sys)

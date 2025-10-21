@@ -61,13 +61,13 @@ class DataIngestion:
             raise CustomException(e,sys)    
         
 
-if __name__=="__main__":
-     obj=DataIngestion()
-     train_data,test_data=obj.initiate_data_ingestion()
+if __name__ == "__main__":
+    obj = DataIngestion()
+    train_data, test_data = obj.initiate_data_ingestion()
 
-     data_transformation=DataTransformation()
-     # FIX: Unpack all 3 return values
-     train_arr, test_arr, preprocessor_path = data_transformation.initiate_data_transformation(train_data, test_data)
+    data_transformation = DataTransformation()
+    train_arr, test_arr, preprocessor_path = data_transformation.initiate_data_transformation(train_data, test_data)
 
-     modeltrainer=ModelTrainer()
-     print(modeltrainer.initiate_model_trainer(train_arr, test_arr))
+    modeltrainer = ModelTrainer()
+    r2_score = modeltrainer.initiate_model_trainer(train_arr, test_arr)
+    print(f"Best Model R2 Score: {r2_score}")
